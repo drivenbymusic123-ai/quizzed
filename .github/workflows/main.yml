@@ -1,0 +1,84 @@
+name: Build Quiz App (Windows / macOS / Android)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  # -------------------- Windows Build --------------------
+  windows:
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.22.0'
+      - name: Disable Flutter Analytics
+        run: flutter config --no-analytics
+      - name: Enable Windows Desktop Support
+        run: flutter create . --platforms=windows --overwrite
+      - name: Build Windows exe
+        run: flutter build windows --release
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: build/windows/x64/runner/Release/
+
+  # -------------------- macOS Build --------------------
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.22.0'
+      - name: Disable Flutter Analytics
+        run: flutter config --no-analytics
+      - name: Enable macOS Desktop Support
+        run: flutter create . --platforms=macos --overwrite
+      - name: Build macOS app
+        run: flutter build macos --release
+      - name: Zip macOS app bundle
+        run: |
+          cd build/macos/Build/Products/Release/
+          zip -r ../../../../QuizApp-macOS.zip *.app
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: QuizApp-macOS.zip
+
+  # -------------------- Android Build --------------------
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.22.0'
+      - name: Disable Flutter Analytics
+        run: flutter config --no-analytics
+      - name: Accept Android licenses
+        run: yes "y" | flutter doctor --android-licenses || true
+      - name: Fix Android Gradle Template
+        run: flutter create . --platforms=android --overwrite
+      - name: Build Android APK
+        run: flutter build apk --release
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
